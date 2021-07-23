@@ -625,6 +625,37 @@ impl Command {
         self
     }
 
+    /// Clears the argument array.
+    ///
+    /// When one wants to restart a Command again with different
+    /// arguments the argument list can to be cleared first.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```no_run
+    /// use std::process::Command;
+    ///
+    /// let lsdir = Command::new("ls");
+    ///
+    /// lsdir
+    ///     .arg("target")
+    ///     .spawn()
+    ///     .expect("ls command failed to start");
+    ///
+    /// lsdir
+    ///     .args_clear()
+    ///     .arg("tests")
+    ///     .spawn()
+    ///     .expect("ls command failed to start");
+    /// ```
+    #[unstable(feature = "mutate_command_args", issue = "87379")]
+    pub fn args_clear(&mut self) -> &mut Command {
+        self.inner.args_clear(); //cehteh
+        self
+    }
+
     /// Inserts or updates an environment variable mapping.
     ///
     /// Note that environment variable names are case-insensitive (but case-preserving) on Windows,
