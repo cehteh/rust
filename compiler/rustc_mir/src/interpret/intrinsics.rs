@@ -11,10 +11,11 @@ use rustc_middle::mir::{
     BinOp,
 };
 use rustc_middle::ty;
+use rustc_middle::ty::layout::LayoutOf as _;
 use rustc_middle::ty::subst::SubstsRef;
 use rustc_middle::ty::{Ty, TyCtxt};
 use rustc_span::symbol::{sym, Symbol};
-use rustc_target::abi::{Abi, Align, LayoutOf as _, Primitive, Size};
+use rustc_target::abi::{Abi, Align, Primitive, Size};
 
 use super::{
     util::ensure_monomorphic_enough, CheckInAllocMsg, ImmTy, InterpCx, Machine, OpTy, PlaceTy,
@@ -465,7 +466,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 );
                 self.copy_op(&self.operand_index(&args[0], index)?, dest)?;
             }
-            sym::likely | sym::unlikely => {
+            sym::likely | sym::unlikely | sym::black_box => {
                 // These just return their argument
                 self.copy_op(&args[0], dest)?;
             }

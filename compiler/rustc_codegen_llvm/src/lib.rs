@@ -92,11 +92,12 @@ impl ExtraBackendMethods for LlvmCodegenBackend {
     fn codegen_allocator<'tcx>(
         &self,
         tcx: TyCtxt<'tcx>,
-        mods: &mut ModuleLlvm,
+        module_llvm: &mut ModuleLlvm,
+        module_name: &str,
         kind: AllocatorKind,
         has_alloc_error_handler: bool,
     ) {
-        unsafe { allocator::codegen(tcx, mods, kind, has_alloc_error_handler) }
+        unsafe { allocator::codegen(tcx, module_llvm, module_name, kind, has_alloc_error_handler) }
     }
     fn compile_codegen_unit(
         &self,
@@ -352,8 +353,8 @@ impl ModuleLlvm {
 impl Drop for ModuleLlvm {
     fn drop(&mut self) {
         unsafe {
-            llvm::LLVMContextDispose(&mut *(self.llcx as *mut _));
             llvm::LLVMRustDisposeTargetMachine(&mut *(self.tm as *mut _));
+            llvm::LLVMContextDispose(&mut *(self.llcx as *mut _));
         }
     }
 }

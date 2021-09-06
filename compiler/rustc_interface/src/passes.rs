@@ -324,7 +324,7 @@ pub fn configure_and_expand(
         };
 
         let extern_mod_loaded = |ident: Ident, attrs, items, span| {
-            let krate = ast::Crate { attrs, items, span, proc_macros: vec![] };
+            let krate = ast::Crate { attrs, items, span };
             pre_expansion_lint(sess, lint_store, &krate, &ident.name.as_str());
             (krate.attrs, krate.items)
         };
@@ -463,10 +463,6 @@ pub fn lower_to_hir<'res, 'tcx>(
         rustc_parse::nt_to_tokenstream,
         arena,
     );
-
-    if sess.opts.debugging_opts.hir_stats {
-        hir_stats::print_hir_stats(&hir_crate);
-    }
 
     sess.time("early_lint_checks", || {
         rustc_lint::check_ast_crate(
@@ -741,7 +737,6 @@ pub static DEFAULT_QUERY_PROVIDERS: SyncLazy<Providers> = SyncLazy::new(|| {
     let providers = &mut Providers::default();
     providers.analysis = analysis;
     proc_macro_decls::provide(providers);
-    plugin::build::provide(providers);
     rustc_middle::hir::provide(providers);
     mir::provide(providers);
     mir_build::provide(providers);
@@ -855,8 +850,6 @@ fn analysis(tcx: TyCtxt<'_>, (): ()) -> Result<()> {
         parallel!(
             {
                 entry_point = sess.time("looking_for_entry_point", || tcx.entry_fn(()));
-
-                sess.time("looking_for_plugin_registrar", || tcx.ensure().plugin_registrar_fn(()));
 
                 sess.time("looking_for_derive_registrar", || {
                     tcx.ensure().proc_macro_decls_static(())

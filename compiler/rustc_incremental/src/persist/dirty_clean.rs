@@ -142,7 +142,7 @@ pub fn check_dirty_clean_annotations(tcx: TyCtxt<'_>) {
         krate.visit_all_item_likes(&mut dirty_clean_visitor);
 
         let mut all_attrs = FindAllAttrs { tcx, found_attrs: vec![] };
-        intravisit::walk_crate(&mut all_attrs, krate);
+        tcx.hir().walk_attributes(&mut all_attrs);
 
         // Note that we cannot use the existing "unused attribute"-infrastructure
         // here, since that is running before codegen. This is also the reason why
@@ -159,7 +159,7 @@ pub struct DirtyCleanVisitor<'tcx> {
 impl DirtyCleanVisitor<'tcx> {
     /// Possibly "deserialize" the attribute into a clean/dirty assertion
     fn assertion_maybe(&mut self, item_id: LocalDefId, attr: &Attribute) -> Option<Assertion> {
-        if !self.tcx.sess.check_name(attr, sym::rustc_clean) {
+        if !attr.has_name(sym::rustc_clean) {
             // skip: not rustc_clean/dirty
             return None;
         }
@@ -427,7 +427,7 @@ pub struct FindAllAttrs<'tcx> {
 
 impl FindAllAttrs<'tcx> {
     fn is_active_attr(&mut self, attr: &Attribute) -> bool {
-        if self.tcx.sess.check_name(attr, sym::rustc_clean) && check_config(self.tcx, attr) {
+        if attr.has_name(sym::rustc_clean) && check_config(self.tcx, attr) {
             return true;
         }
 

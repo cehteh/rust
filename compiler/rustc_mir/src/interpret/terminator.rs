@@ -2,13 +2,13 @@ use std::borrow::Cow;
 use std::convert::TryFrom;
 
 use rustc_middle::middle::codegen_fn_attrs::CodegenFnAttrFlags;
-use rustc_middle::ty::layout::{self, TyAndLayout};
+use rustc_middle::ty::layout::{self, LayoutOf as _, TyAndLayout};
 use rustc_middle::ty::Instance;
 use rustc_middle::{
     mir,
     ty::{self, Ty},
 };
-use rustc_target::abi::{self, LayoutOf as _};
+use rustc_target::abi;
 use rustc_target::spec::abi::Abi;
 
 use super::{
@@ -18,12 +18,7 @@ use super::{
 
 impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
     fn fn_can_unwind(&self, attrs: CodegenFnAttrFlags, abi: Abi) -> bool {
-        layout::fn_can_unwind(
-            self.tcx.sess.panic_strategy(),
-            attrs,
-            layout::conv_from_spec_abi(*self.tcx, abi),
-            abi,
-        )
+        layout::fn_can_unwind(*self.tcx, attrs, abi)
     }
 
     pub(super) fn eval_terminator(
@@ -73,11 +68,11 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     ty::FnPtr(sig) => {
                         let caller_abi = sig.abi();
                         let fn_ptr = self.read_pointer(&func)?;
-                        let fn_val = self.memory.get_fn(fn_ptr.into())?;
+                        let fn_val = self.memory.get_fn(fn_ptr)?;
                         (
                             fn_val,
                             caller_abi,
-                            self.fn_can_unwind(layout::fn_ptr_codegen_fn_attr_flags(), caller_abi),
+                            self.fn_can_unwind(CodegenFnAttrFlags::empty(), caller_abi),
                         )
                     }
                     ty::FnDef(def_id, substs) => {
@@ -466,7 +461,7 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 // a thin pointer.
                 assert!(receiver_place.layout.is_unsized());
                 let receiver_ptr_ty = self.tcx.mk_mut_ptr(receiver_place.layout.ty);
-                let this_receiver_ptr = self.layout_of(receiver_ptr_ty)?.field(self, 0)?;
+                let this_receiver_ptr = self.layout_of(receiver_ptr_ty)?.field(self, 0);
                 // Adjust receiver argument.
                 args[0] = OpTy::from(ImmTy::from_immediate(
                     Scalar::from_maybe_pointer(receiver_place.ptr, self).into(),

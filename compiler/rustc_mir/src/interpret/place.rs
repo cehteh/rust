@@ -8,10 +8,10 @@ use std::hash::Hash;
 use rustc_ast::Mutability;
 use rustc_macros::HashStable;
 use rustc_middle::mir;
-use rustc_middle::ty::layout::{PrimitiveExt, TyAndLayout};
+use rustc_middle::ty::layout::{LayoutOf, PrimitiveExt, TyAndLayout};
 use rustc_middle::ty::{self, Ty};
 use rustc_target::abi::{Abi, Align, FieldsShape, TagEncoding};
-use rustc_target::abi::{HasDataLayout, LayoutOf, Size, VariantIdx, Variants};
+use rustc_target::abi::{HasDataLayout, Size, VariantIdx, Variants};
 
 use super::{
     alloc_range, mir_assign_valid_types, AllocId, AllocRef, AllocRefMut, CheckInAllocMsg,
@@ -355,7 +355,7 @@ where
         field: usize,
     ) -> InterpResult<'tcx, MPlaceTy<'tcx, M::PointerTag>> {
         let offset = base.layout.fields.offset(field);
-        let field_layout = base.layout.field(self, field)?;
+        let field_layout = base.layout.field(self, field);
 
         // Offset may need adjustment for unsized fields.
         let (meta, offset) = if field_layout.is_unsized() {
@@ -405,7 +405,7 @@ where
                 }
                 let offset = stride * index; // `Size` multiplication
                 // All fields have the same layout.
-                let field_layout = base.layout.field(self, 0)?;
+                let field_layout = base.layout.field(self, 0);
 
                 assert!(!field_layout.is_unsized());
                 base.offset(offset, MemPlaceMeta::None, field_layout, self)
@@ -430,7 +430,7 @@ where
             FieldsShape::Array { stride, .. } => stride,
             _ => span_bug!(self.cur_span(), "mplace_array_fields: expected an array layout"),
         };
-        let layout = base.layout.field(self, 0)?;
+        let layout = base.layout.field(self, 0);
         let dl = &self.tcx.data_layout;
         // `Size` multiplication
         Ok((0..len).map(move |i| base.offset(stride * i, MemPlaceMeta::None, layout, dl)))

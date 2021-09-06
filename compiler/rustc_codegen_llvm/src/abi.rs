@@ -11,11 +11,12 @@ use rustc_codegen_ssa::mir::place::PlaceRef;
 use rustc_codegen_ssa::traits::*;
 use rustc_codegen_ssa::MemFlags;
 use rustc_middle::bug;
+use rustc_middle::ty::layout::LayoutOf;
 pub use rustc_middle::ty::layout::{FAT_PTR_ADDR, FAT_PTR_EXTRA};
 use rustc_middle::ty::Ty;
 use rustc_target::abi::call::ArgAbi;
 pub use rustc_target::abi::call::*;
-use rustc_target::abi::{self, HasDataLayout, Int, LayoutOf};
+use rustc_target::abi::{self, HasDataLayout, Int};
 pub use rustc_target::spec::abi::Abi;
 
 use libc::c_uint;
@@ -353,7 +354,11 @@ pub trait FnAbiLlvmExt<'tcx> {
 
 impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
     fn llvm_type(&self, cx: &CodegenCx<'ll, 'tcx>) -> &'ll Type {
-        let args_capacity: usize = self.args.iter().map(|arg|
+        // Ignore "extra" args from the call site for C variadic functions.
+        // Only the "fixed" args are part of the LLVM function signature.
+        let args = if self.c_variadic { &self.args[..self.fixed_count] } else { &self.args };
+
+        let args_capacity: usize = args.iter().map(|arg|
             if arg.pad.is_some() { 1 } else { 0 } +
             if let PassMode::Pair(_, _) = arg.mode { 2 } else { 1 }
         ).sum();
@@ -371,7 +376,7 @@ impl<'tcx> FnAbiLlvmExt<'tcx> for FnAbi<'tcx, Ty<'tcx>> {
             }
         };
 
-        for arg in &self.args {
+        for arg in args {
             // add padding
             if let Some(ty) = arg.pad {
                 llargument_tys.push(ty.llvm_type(cx));

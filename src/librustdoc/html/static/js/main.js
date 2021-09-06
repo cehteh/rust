@@ -706,8 +706,9 @@ function hideThemeButtonState() {
                     }
                 }
 
-                var code = document.createElement("code");
+                var code = document.createElement("h3");
                 code.innerHTML = struct.text;
+                addClass(code, "code-header");
                 addClass(code, "in-band");
 
                 onEachLazy(code.getElementsByTagName("a"), function(elem) {
@@ -985,7 +986,7 @@ function hideThemeButtonState() {
         });
 
         var el = document.createElement('textarea');
-        el.value = 'use ' + path.join('::') + ';';
+        el.value = path.join('::');
         el.setAttribute('readonly', '');
         // To not make it appear on the screen.
         el.style.position = 'absolute';
